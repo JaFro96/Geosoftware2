@@ -1,160 +1,129 @@
-import click, json, sqlite3, csv, pygeoj
-from osgeo import gdal, ogr, osr
-import pandas as pd
-import numpy as np
-import xarray as xr
-import os
-import getShapefileInfo, getGeoTiffInfo, getCSVInfo, getIsoInfo, getGeoJsonInfo, getNetCDFInfo, getGeoPackageInfo, extractTool
-from scipy.spatial import ConvexHull
+import click    # used to print something
+import os            # used to get the location of the testdata   # used to navigate through the folder
+import getShapefileInfo, getGeoTiffInfo, getCSVInfo, getIsoInfo, getGeoJsonInfo, getNetCDFInfo, getGeoPackageInfo # used for the specific functions to extract the spatial and temporal information
 
 """
-Function for extracting the spatial extent from a directory of files
+Function for extracting the spatial extent or temporal extent from a directory of files
 
 :param filepath: path to the directory of the files
 :param detail: specifies the level of detail of the geospatial extent (bbox or convex hull)
-:param folder: specifies if the user gets the metadata for the whole folder (whole) or for each file (single)
 :param time: boolean variable, if it is true the user gets the temporal extent instead of the spatial extent
 :returns: spatial extent as a bbox in the format [minlon, minlat, maxlon, maxlat]
 """
-
-def openFolder(filepath, detail, folder, time):
+def openFolder(filepath, detail , time):
+    # arrays for the spatial and temporal extent
+    folder_bbox_array=[]
+    folder_conv_hull_array=[]
+    folder_time_array=[]
+    
     folderpath= filepath
-    click.echo("folderfolderfolder")
     docs=os.listdir(folderpath) 
     # docs now contains the files of the folder 
     # tries to extract the bbox of each file 
     for x in docs:  
-        docPath= folderpath +"/"+ x
+        doc_path= folderpath +"/"+ x
         try:
-            click.echo("folderShape")
-            getShapefileInfo.getShapefilebbx(docPath, detail, folder, time)
+            result_folder=getShapefileInfo.getShapefilebbx(doc_path, detail , time)
         except Exception as e:
             try:
-                click.echo("folderGeoJSON")
-                getGeoJsonInfo.getGeoJsonbbx(docPath, detail, folder, time)
+                result_folder=getGeoJsonInfo.getGeoJsonbbx(doc_path, detail , time)
             except Exception as e:
                 try:
                     click.echo(e)
-                    click.echo("folderNetCDF")
-                    getNetCDFInfo.getNetCDFbbx(docPath, detail, folder, time)
+                    result_folder=getNetCDFInfo.getNetCDFbbx(doc_path, detail , time)
                 except Exception as e:
                     try:
-                        click.echo("folderCSV")
-                        getCSVInfo.getCSVbbx(docPath, detail, folder, time)
-                    except Exception as e:
+                        result_folder=getCSVInfo.getCSVbbx(doc_path, detail , time)
+                    except TypeError as e:
                         try:
-                            click.echo("folderGeoTIFF")
-                            getGeoTiffInfo.getGeoTiffbbx(docPath, detail, folder, time)
+                            result_folder=getGeoTiffInfo.getGeoTiffbbx(doc_path, detail , time)
                         except Exception as e:
                             try:
-                                click.echo("folderGeoPackage")
-                                getGeoPackageInfo.getGeopackagebbx(docPath, detail, folder, time)
+                                result_folder=getGeoPackageInfo.getGeopackagebbx(doc_path, detail , time)
                                 print("after geopackage")
                             except Exception as e:
                                 try:
-                                    click.echo("folderISO")
-                                    getIsoInfo.getIsobbx(docPath, detail, folder, time)
+                                    result_folder=getIsoInfo.getIsobbx(doc_path, detail , time)
                                 except Exception as e:
                                     try:
-                                        click.echo("folderfolder")
-                                        openFolder(docPath, detail, folder, time)
+                                        result_folder=openFolder(doc_path, detail , time)
                                     except Exception as e:
-                                        click.echo("folderInvalid")
                                         click.echo ("invalid file format in folder!")
-                                        return None
-    ret_value_folder=[]                                    
-    if folder=='whole':
-        if detail=='bbox':
-            print("if")
-            bboxes=extractTool.bboxArray
-            print("222222222")
-            print(bboxes)
-            min1=100000000
-            min2=100000000
-            max1=-10000000
-            max2=-10000000
-            lat1List=[lat1 for lat1, lng1, lat2, lng2 in bboxes]
-            #print(lat1List)
-            for x in lat1List:
-                if x<min1:
-                    min1=x
+                                        result_folder=None                               
+        if (result_folder[0]!=[None]):
+            folder_bbox_array=folder_bbox_array+[result_folder[0]]
+        if (result_folder[1]!= [None]):
+            folder_conv_hull_array=folder_conv_hull_array+[result_folder[1]]
+        if (result_folder[2]!=[None]):
+            folder_time_array=folder_time_array+[result_folder[2]]
+    
+    ret_value_folder=[] 
+    # compute the bounding box of the entire folder                           
+    if detail=='bbox':
+        bboxes=folder_bbox_array
+        min_lon_list=[min_lon for min_lon, min_lat, max_lon, max_lat in bboxes]
+        for x in min_lon_list:
+            try:
+                if x<min_lon_all:
+                    min_lon_all=x
+            except NameError:
+                min_lon_all = x
 
+        min_lat_list=[min_lat for min_lon, min_lat, max_lon, max_lat in bboxes]
+        for x in min_lat_list:
+            try:
+                if x<min_lat_all:
+                    min_lat_all=x
+            except NameError:
+                min_lat_all = x
 
-            lng1List=[lng1 for lat1, lng1, lat2, lng2 in bboxes]
-            #print(lng1List)
-            for x in lng1List:
-                if x<min2:
-                    min2=x
+        max_lon_list=[max_lon for min_lon, min_lat, max_lon, max_lat in bboxes]
+        for x in max_lon_list:
+            try:
+                if x>max_lon_all:
+                    max_lon_all=x
+            except NameError:
+                max_lon_all=x
 
-            lat2List=[lat2 for lat1, lng1, lat2, lng2 in bboxes]
-            #print(lat2List)
-            for x in lat2List:
-                if x>max1:
-                    max1=x
+        max_lat_list=[max_lat for min_lon, min_lat, max_lon, max_lat in bboxes]
+        for x in max_lat_list:
+            try:
+                if x>max_lat_all:
+                    max_lat_all=x
+            except NameError:
+                max_lat_all=x
 
+        # bounding box of the entire folder
+        folderbbox=[min_lon_all, min_lat_all, max_lon_all, max_lat_all]
+        ret_value_folder.append(folderbbox)
+    else:
+        ret_value_folder.append([None])
 
-            lng2List=[lng2 for lat1, lng1, lat2, lng2 in bboxes]
-            #print(lng2List)
-            for x in lng2List:
-                if x>max2:
-                    max2=x
+    if detail=='convexHull':
+        click.echo("There is no convex hull for directories.")
+        ret_value_folder.append([None])
+    else:
+        ret_value_folder.append([None])
 
-            folderbbox=[min1, min2, max1, max2]
-            print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            print("boundingbox of the whole folder:")
-            print(folderbbox)
-            print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            ret_value_folder.append(folderbbox)
-            #return folderbbox
+    # compute the time extend of the entire folder
+    if (time):
+        times=folder_time_array
+        start_dates=[]
+        end_dates=[]
+        for z in times:
+            start_dates.append(z[0])
+            end_dates.append(z[1])
+        min_date=min(start_dates)
+        max_date=max(end_dates)
+        folder_timeextend=[min_date, max_date]
+
+        if (times):
+            ret_value_folder.append(folder_timeextend)
         else:
             ret_value_folder.append([None])
-        if detail=='convexHull':
-            print("tzttztztztz")
-            points=extractTool.bboxArray
-            print("gi")
-            print(points)
-            print(ConvexHull(points))
-            hull=ConvexHull(points)
-            print("hi")
-            hull_points=hull.vertices
-            convHull=[]
-            print("concon")
-            for y in hull_points:
-                point=[points[y][0], points[y][1]]
-                convHull.append(point)
-            print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            click.echo("convex hull of the folder:")    
-            click.echo(convHull)
-            print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            #return convHull
-            ret_value_folder.append(convHull)
-        else:
-            ret_value_folder.append([None])
-        if (time):
-            times=extractTool.timeextendArray
-            mindate=[]
-            maxdate=[]
-            for z in times:
-                mindate.append(z[0])
-                maxdate.append(z[1])
-            min_mindate=min(mindate)
-            max_maxdate=max(maxdate)
-            folder_timeextend=[min_mindate, max_maxdate]
-            print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            click.echo("timeextend of the folder:")    
-            click.echo(min_mindate)
-            click.echo(max_maxdate)
-            print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-            #return folder_timeextend
-            ret_value_folder.append(convHull)
-        else:
-            ret_value_folder.append([None])
-
-    print(ret_value_folder)
+    else:
+        ret_value_folder.append([None])
     return ret_value_folder
-
-        
-
 
 if __name__ == '__main__':
     openFolder()

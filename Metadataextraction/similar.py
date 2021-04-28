@@ -1,17 +1,7 @@
-import math
-import extractTool
-import click
-import os
-
-
-# def mastersim(filepath):
-    # bbox1 = detailebenen(filepath) blabla Hier muessen die Bboxen berechet werden
-    # bbox2 = detailebee(filepath) blabla also detailebenen Aufrufen
-    # sim = aehnlickeit(bbox1, bbox2)
-    # Hier muss typ.py
-    # input1 = typ.getTyp(filepath)
-    # input2 = typ.getTyp(filepath)
-    # whatDataType(input1, input2, sim)
+import math         # used for the computations (e.g. cos and sin)
+import extractTool  # used for the the transformation and prints
+import click        # used to print something 
+import os            # used to get the location of the testdata     
 
 """
 Function to apply data type similarity on the similarity score
@@ -25,13 +15,10 @@ def whatDataType(filepath1, filepath2, sim):
     input2 = extension(filepath2)
     
     if input1 == "raster" and input2 == "raster":
-        click.echo("These files are rasterdata")
         return sim
     if input1 == "vector" and input2 == "vector":
-        click.echo("These files are vectordata")
         return sim
     if input1 == "raster" and input2 == "vector" or input1 == "vector" and input2 == "raster":
-        click.echo("These files are not the same datatype")
         sim = sim*5/4
         if sim > 1:
             sim = 1
@@ -48,11 +35,10 @@ Function to find out if the datafile is a vector or rasta datatype
 def extension(filepath):
     end = os.path.splitext(filepath)
     typ = end[1]
-    print(typ)
 
     if typ == ".csv" or typ == ".tif" or typ == ".gpkg":
         return "raster"
-    if typ == ".geojson" or typ == ".sh" or typ == ".gpkg" or typ == ".gml" or typ == ".kml" or typ == ".nc":
+    if typ == ".geojson" or typ == ".shp" or typ == ".gpkg" or typ == ".gml" or typ == ".kml" or typ == ".nc":
         return "vector"
     else:
         print("not valid")
@@ -66,7 +52,7 @@ for a more detailed explanation look at: https://github.com/carobro/Geosoftware2
 :param bbox2: Bounding Box from a file
 :returns: similarity score from the two Bounding Boxes
 """
-def calcuateScore(bbox1,bbox2):
+def calculatedScore(bbox1,bbox2):
     if isinstance(bbox1[0], float) and isinstance(bbox1[1], float) and isinstance(bbox1[2], float) and isinstance(bbox1[3], float) and isinstance(bbox2[0], float) and isinstance(bbox2[1], float) and isinstance(bbox2[2], float) and isinstance(bbox2[3], float):
         if  bbox1[0] != bbox2[0] and bbox1[1] != bbox2[1] and bbox1[2] != bbox2[2] and bbox1[3] != bbox2[3]: 
             if distance(bbox1,bbox2) < 20000:
@@ -80,7 +66,7 @@ def calcuateScore(bbox1,bbox2):
             sim = (2 * simdis + simA)/3
             return sim
         else:
-            sim=1
+            sim = 0
             return sim
     else:
         sim = 1
